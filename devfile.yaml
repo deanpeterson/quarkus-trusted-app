@@ -7,7 +7,9 @@ metadata:
   icon: https://design.jboss.org/quarkus/logo/final/SVG/quarkus_icon_rgb_default.svg
   website: https://quarkus.io
   displayName: Quarkus Java - Trusted Application Pipeline
-  description: Quarkus Java example with advanced continuous integration pipeline covering building, CVE scanning, security scanning, signatures, attestations, SLSA provenance and SBOM along with Gitops-based continuous deployment.
+  description: Quarkus Java example with advanced continuous integration pipeline
+    covering building, CVE scanning, security scanning, signatures, attestations,
+    SLSA provenance and SBOM along with Gitops-based continuous deployment.
   tags:
     - Java
     - Quarkus
@@ -20,7 +22,7 @@ metadata:
     alpha.dockerimage-port: 8081
 parent:
   id: java-quarkus
-  registryUrl: 'https://registry.devfile.io'
+  registryUrl: "https://registry.devfile.io"
   components:
     - name: tools
       container:
@@ -51,20 +53,24 @@ commands:
   - id: init-git-config
     exec:
       commandLine: |
-        if [ -f /config/user/profile ]; then
-          export GIT_USER_NAME=$(cat /config/user/profile/name 2>/dev/null || echo "")
-          export GIT_USER_EMAIL=$(cat /config/user/profile/email 2>/dev/null || echo "")
-          if [ -n "$GIT_USER_NAME" ]; then
-            git config --global user.name "$GIT_USER_NAME"
-          fi
-          if [ -n "$GIT_USER_EMAIL" ] && [ "$GIT_USER_EMAIL" != *"@che" ]; then
-            git config --global user.email "$GIT_USER_EMAIL"
-          fi
+        GIT_USER_EMAIL=""
+        GIT_USER_NAME=""
+        if [ -d /config/user/profile ]; then
+          GIT_USER_NAME=$(cat /config/user/profile/name 2>/dev/null || true)
+          GIT_USER_EMAIL=$(cat /config/user/profile/email 2>/dev/null || true)
         fi
-        if ! git config --global user.email > /dev/null 2>&1 || git config --global user.email | grep -q '@che$'; then
+        # Set user.name from profile or fallback
+        if [ -n "$GIT_USER_NAME" ]; then
+          git config --global user.name "$GIT_USER_NAME"
+        else
           git config --global user.name "Dean Peterson"
-          git config --global user.email "peterson.dean@gmail.com"
         fi
+        # Set user.email - skip @che placeholder, use real email
+        case "$GIT_USER_EMAIL" in
+          *@che) git config --global user.email "peterson.dean@gmail.com" ;;
+          "")    git config --global user.email "peterson.dean@gmail.com" ;;
+          *)     git config --global user.email "$GIT_USER_EMAIL" ;;
+        esac
       component: tools
   - id: build-image
     apply:
